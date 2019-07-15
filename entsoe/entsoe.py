@@ -535,6 +535,22 @@ class EntsoeRawClient:
             doctype="A80", docstatus='A13')
         return content
 
+    def query_forecast_capacity(self, country_code_from, country_code_to, contract_market_agreement_type,
+                                start, end):
+
+
+        params = {
+            'documentType': 'A61',
+            'contract_MarketAgreement.Type': contract_market_agreement_type,
+            'in_Domain':BIDDING_ZONES[country_code_from],
+            'out_Domain': BIDDING_ZONES[country_code_to]
+        }
+
+
+        response = self.base_request(params=params, start=start, end=end)
+
+        return response.content
+
 
 def paginated(func):
     """Catches a PaginationError, splits the requested period in two and tries
@@ -973,3 +989,17 @@ class EntsoePandasClient(EntsoeRawClient):
         df = pd.concat(data.values(), axis=1, keys=data.keys())
         df = df.truncate(before=start, after=end)
         return df
+
+    @year_limited
+    def query_forecast_capacity(self, country_code_from, country_code_to, contract_market_agreement_type, start, end):
+
+        content = super(EntsoePandasClient, self).query_forecast_capacity(
+            country_code_from=country_code_from, country_code_to=country_code_to,
+            contract_market_agreement_type=contract_market_agreement_type,
+            start=start, end=end)
+
+        series = parse_loads(content)
+        series = series.tz_convert(TIMEZONE_MAPPINGS[country_code_from])
+        series = series.truncate(before=start, after=end)
+
+        return series
