@@ -429,7 +429,7 @@ class EntsoeRawClient:
         return response.text
 
     def query_unavailability(self, country_code, start, end,
-                            doctype, docstatus=None, periodstartupdate = None,
+                            doctype, bsn_type=None, docstatus=None, periodstartupdate = None,
                             periodendupdate = None) -> bytes:
         """
         Generic unavailibility query method.
@@ -454,11 +454,12 @@ class EntsoeRawClient:
         params = {
             'documentType': doctype,
             'biddingZone_domain': domain
-            # ,'businessType': 'A53 (unplanned) | A54 (planned)'
         }
 
         if docstatus:
             params['docStatus'] = docstatus
+        if bsn_type:
+            params['businessType'] = bsn_type
         if periodstartupdate and periodendupdate:
             params['periodStartUpdate'] = self._datetime_to_str(periodstartupdate)
             params['periodEndUpdate'] = self._datetime_to_str(periodendupdate)
@@ -495,7 +496,7 @@ class EntsoeRawClient:
         return content
 
     def query_unavailability_of_production_units(self, country_code, start, end,
-                                     docstatus=None, periodstartupdate = None,
+                                                 docstatus=None, periodstartupdate = None,
                                      periodendupdate = None) -> bytes:
         """
         This endpoint serves ZIP files.
@@ -826,7 +827,7 @@ class EntsoePandasClient(EntsoeRawClient):
     @paginated
     def query_unavailability(self, country_code, start, end, doctype,
                                      docstatus=None, periodstartupdate = None,
-                                     periodendupdate = None):
+                                     bsn_type = None, periodendupdate = None):
         """
         Parameters
         ----------
@@ -846,7 +847,7 @@ class EntsoePandasClient(EntsoeRawClient):
                         self).query_unavailability(
             country_code=country_code, start=start, end=end, doctype = doctype,
             docstatus=docstatus,  periodstartupdate = periodstartupdate,
-            periodendupdate = periodendupdate)
+            periodendupdate = periodendupdate,bsn_type = bsn_type)
         df = parse_unavailabilities(content)
         df = df.tz_convert(TIMEZONE_MAPPINGS[country_code])
         df['start'] = df['start'].apply(lambda x: x.tz_convert(TIMEZONE_MAPPINGS[country_code]))
@@ -854,8 +855,8 @@ class EntsoePandasClient(EntsoeRawClient):
         df = df.truncate(before=start, after=end)
         return df
 
-    @year_limited
-    @paginated
+    #@year_limited
+    #@paginated
     def query_unavailability_of_generation_units(self, country_code, start, end,
                                      docstatus=None, periodstartupdate = None,
                                      periodendupdate = None):
@@ -873,19 +874,19 @@ class EntsoePandasClient(EntsoeRawClient):
         -------
         pd.DataFrame
         """
-        df = super(EntsoePandasClient,
-                        self).query_unavailability_of_generation_units(
+        df = self.query_unavailability(
             country_code=country_code, start=start, end=end,
+            doctype='A80',
             docstatus=docstatus,  periodstartupdate = periodstartupdate,
             periodendupdate = periodendupdate)
-        df = df.tz_convert(TIMEZONE_MAPPINGS[country_code])
-        df['start'] = df['start'].apply(lambda x: x.tz_convert(TIMEZONE_MAPPINGS[country_code]))
-        df['end'] = df['end'].apply(lambda x: x.tz_convert(TIMEZONE_MAPPINGS[country_code]))
-        df = df.truncate(before=start, after=end)
+        #df = df.tz_convert(TIMEZONE_MAPPINGS[country_code])
+        #df['start'] = df['start'].apply(lambda x: x.tz_convert(TIMEZONE_MAPPINGS[country_code]))
+        #df['end'] = df['end'].apply(lambda x: x.tz_convert(TIMEZONE_MAPPINGS[country_code]))
+        #df = df.truncate(before=start, after=end)
         return df
 
-    @year_limited
-    @paginated
+    #@year_limited
+    #@paginated
     def query_unavailability_of_production_units(self, country_code, start, end,
                                      docstatus=None, periodstartupdate = None,
                                      periodendupdate = None):
@@ -903,16 +904,16 @@ class EntsoePandasClient(EntsoeRawClient):
         -------
         pd.DataFrame
         """
-        content = super(EntsoePandasClient,
-                        self).query_unavailability_of_production_units(
+        df = self.query_unavailability(
             country_code=country_code, start=start, end=end,
+            doctype='A77',
             docstatus=docstatus, periodstartupdate = periodstartupdate,
             periodendupdate = periodendupdate)
-        df = parse_unavailabilities(content)
-        df = df.tz_convert(TIMEZONE_MAPPINGS[country_code])
-        df['start'] = df['start'].apply(lambda x: x.tz_convert(TIMEZONE_MAPPINGS[country_code]))
-        df['end'] = df['end'].apply(lambda x: x.tz_convert(TIMEZONE_MAPPINGS[country_code]))
-        df = df.truncate(before=start, after=end)
+        #df = parse_unavailabilities(content)
+        #df = df.tz_convert(TIMEZONE_MAPPINGS[country_code])
+        #df['start'] = df['start'].apply(lambda x: x.tz_convert(TIMEZONE_MAPPINGS[country_code]))
+        #df['end'] = df['end'].apply(lambda x: x.tz_convert(TIMEZONE_MAPPINGS[country_code]))
+        #df = df.truncate(before=start, after=end)
         return df
 
     def query_withdrawn_unavailability_of_generation_units(
